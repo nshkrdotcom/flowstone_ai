@@ -8,20 +8,18 @@ defmodule FlowStone.AI.MixProject do
     [
       app: :flowstone_ai,
       version: @version,
-      elixir: "~> 1.17",
+      elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env()),
 
-      # Docs
-      name: "FlowStone.AI",
-      description: "FlowStone integration for altar_ai - AI-powered data pipeline assets",
+      # Hex
+      name: "FlowStoneAI",
+      description: description(),
       source_url: @source_url,
       homepage_url: @source_url,
-      docs: docs(),
-
-      # Package
       package: package(),
+      docs: docs(),
 
       # Testing
       test_coverage: [tool: ExCoveralls],
@@ -30,14 +28,17 @@ defmodule FlowStone.AI.MixProject do
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test
+      ],
+
+      # Dialyzer
+      dialyzer: [
+        plt_add_apps: [:mix, :ex_unit]
       ]
     ]
   end
 
   def application do
-    [
-      extra_applications: [:logger]
-    ]
+    [extra_applications: [:logger]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -45,7 +46,7 @@ defmodule FlowStone.AI.MixProject do
 
   defp deps do
     [
-      # Core dependencies
+      # Core dependencies (path for dev, will be hex for release)
       {:altar_ai, path: "../altar_ai"},
       {:flowstone, path: "../flowstone"},
 
@@ -60,23 +61,47 @@ defmodule FlowStone.AI.MixProject do
     ]
   end
 
-  defp docs do
-    [
-      main: "readme",
-      extras: ["README.md"],
-      source_ref: "v#{@version}",
-      logo: "assets/flowstone_ai.svg",
-      assets: "assets"
-    ]
+  defp description do
+    """
+    FlowStone integration for altar_ai - AI-powered data pipeline assets.
+    Provides FlowStone.AI.Resource for unified AI access and FlowStone.AI.Assets
+    DSL helpers (classify_each, enrich_each, embed_each) with telemetry bridging.
+    """
   end
 
   defp package do
     [
-      maintainers: ["nshkr"],
+      name: "flowstone_ai",
+      maintainers: ["nshkrdotcom"],
       licenses: ["MIT"],
       links: %{
-        "GitHub" => @source_url
-      }
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      },
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE CHANGELOG.md assets),
+      exclude_patterns: [
+        "priv/plts",
+        ".DS_Store"
+      ]
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      name: "FlowStoneAI",
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      homepage_url: @source_url,
+      logo: "assets/flowstone_ai.svg",
+      assets: %{"assets" => "assets"},
+      extras: ["README.md", "CHANGELOG.md"],
+      groups_for_modules: [
+        "Core API": [FlowStone.AI],
+        Resource: [FlowStone.AI.Resource],
+        "DSL Helpers": [FlowStone.AI.Assets],
+        Utilities: [FlowStone.AI.Telemetry]
+      ]
     ]
   end
 end

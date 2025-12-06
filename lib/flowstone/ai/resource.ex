@@ -29,7 +29,7 @@ defmodule FlowStone.AI.Resource do
   defstruct [:adapter, :opts]
 
   @type t :: %__MODULE__{
-          adapter: Altar.AI.Adapter.t(),
+          adapter: struct(),
           opts: keyword()
         }
 
