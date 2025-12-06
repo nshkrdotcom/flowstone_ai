@@ -95,7 +95,7 @@ defmodule FlowStone.AI.MixProject do
       homepage_url: @source_url,
       logo: "assets/flowstone_ai.svg",
       assets: %{"assets" => "assets"},
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["README.md", "CHANGELOG.md", "LICENSE"],
       groups_for_modules: [
         "Core API": [FlowStone.AI],
         Resource: [FlowStone.AI.Resource],
