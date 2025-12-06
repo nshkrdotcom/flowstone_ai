@@ -47,11 +47,12 @@ defmodule FlowStone.AI.MixProject do
   defp deps do
     [
       # Core dependencies (path for dev, will be hex for release)
-      {:altar_ai, path: "../altar_ai"},
-      {:flowstone, path: "../flowstone"},
+      {:altar_ai, "~> 0.1.0"},
+      {:flowstone, "~> 0.1.0"},
 
       # Test dependencies
-      {:supertester, path: "../supertester", only: :test},
+      {:stream_data, "~> 1.0", only: :test},
+      {:supertester, "~> 0.3.1", only: :test},
 
       # Dev/docs dependencies
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

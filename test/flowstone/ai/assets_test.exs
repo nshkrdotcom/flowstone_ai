@@ -13,7 +13,7 @@ defmodule FlowStone.AI.AssetsTest do
           adapter: Mock,
           adapter_opts: [
             responses: %{
-              classify: fn _text, labels ->
+              classify: fn _text, _labels ->
                 count = :atomics.add_get(call_count, 1, 1)
 
                 label =
