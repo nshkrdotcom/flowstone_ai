@@ -23,12 +23,6 @@ defmodule FlowStone.AI.MixProject do
 
       # Testing
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.post": :test,
-        "coveralls.html": :test
-      ],
 
       # Dialyzer
       dialyzer: [
@@ -41,18 +35,29 @@ defmodule FlowStone.AI.MixProject do
     [extra_applications: [:logger]]
   end
 
+  def cli do
+    [
+      preferred_envs: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp deps do
     [
-      # Core dependencies (path for dev, will be hex for release)
-      {:altar_ai, "~> 0.1.0"},
-      {:flowstone, "~> 0.1.0"},
+      # Core dependencies (path for local dev)
+      {:altar_ai, path: "../altar_ai"},
+      {:flowstone, path: "../flowstone"},
 
       # Test dependencies
       {:stream_data, "~> 1.0", only: :test},
-      {:supertester, "~> 0.3.1", only: :test},
+      {:supertester, path: "../supertester", only: :test},
 
       # Dev/docs dependencies
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},

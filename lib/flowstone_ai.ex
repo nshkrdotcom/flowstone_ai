@@ -2,6 +2,21 @@ defmodule FlowStone.AI do
   @moduledoc """
   FlowStone integration for altar_ai.
 
+  > **Deprecation Notice**: This package is deprecated in favor of using
+  > `Altar.AI.Integrations.FlowStone` directly from the `altar_ai` package.
+  > This module now delegates all functionality to the unified integration.
+  >
+  > **Migration Path**:
+  > ```elixir
+  > # Before (flowstone_ai)
+  > {:ok, resource} = FlowStone.AI.resource_init(opts)
+  > FlowStone.AI.setup_telemetry()
+  >
+  > # After (altar_ai)
+  > {:ok, resource} = Altar.AI.Integrations.FlowStone.init(opts)
+  > Altar.AI.Integrations.FlowStone.setup_telemetry()
+  > ```
+
   Provides AI capabilities as a FlowStone Resource, enabling
   AI-powered data pipeline assets with automatic provider
   fallback and unified telemetry.
@@ -49,20 +64,19 @@ defmodule FlowStone.AI do
   Events are forwarded from `[:altar, :ai, ...]` to `[:flowstone, :ai, ...]`.
   """
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.init/1 instead"
   @doc """
   Initialize the AI resource with the given options.
 
-  Delegates to `FlowStone.AI.Resource.init/1` for manual initialization.
-  When used as a FlowStone Resource, the `setup/1` callback is used instead.
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.init/1` instead.
   """
-  defdelegate resource_init(opts), to: FlowStone.AI.Resource, as: :init
+  defdelegate resource_init(opts), to: Altar.AI.Integrations.FlowStone, as: :init
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.setup_telemetry/0 instead"
   @doc """
   Set up telemetry bridge to forward altar_ai events to FlowStone's telemetry namespace.
 
-  Should be called once during application startup.
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.setup_telemetry/0` instead.
   """
-  def setup_telemetry do
-    FlowStone.AI.Telemetry.attach()
-  end
+  defdelegate setup_telemetry(), to: Altar.AI.Integrations.FlowStone
 end

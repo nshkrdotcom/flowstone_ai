@@ -2,6 +2,11 @@ defmodule FlowStone.AI.Assets do
   @moduledoc """
   DSL helpers for common AI-powered asset patterns.
 
+  > **Deprecation Notice**: This module is deprecated in favor of using
+  > `Altar.AI.Integrations.FlowStone` directly from the `altar_ai` package.
+  > The DSL helpers (`classify_each`, `enrich_each`, `embed_each`) are now
+  > available directly on the integration module.
+
   This module provides convenient helpers for integrating AI capabilities
   into FlowStone assets, making it easy to classify, enrich, and embed data
   within your pipeline.
@@ -49,156 +54,56 @@ defmodule FlowStone.AI.Assets do
       end
   """
 
-  alias FlowStone.AI.Resource
+  alias Altar.AI.Integrations.FlowStone, as: Integration
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.classify_each/5 instead"
   @doc """
   Classify each item in a collection using AI.
 
-  Takes a collection of items, extracts text from each using `text_fn`,
-  and classifies it into one of the provided labels. The classification
-  and confidence are added to each item.
-
-  ## Parameters
-
-    * `resource` - The FlowStone.AI.Resource instance
-    * `items` - Collection of items to classify
-    * `text_fn` - Function to extract text from each item
-    * `labels` - List of classification labels
-    * `opts` - Additional options to pass to the classifier (optional)
-
-  ## Returns
-
-    * `{:ok, classified_items}` - Items with `:classification` and `:confidence` fields added
-    * Items that fail classification will have `:classification` set to `:unknown`
-
-  ## Examples
-
-      FlowStone.AI.Assets.classify_each(
-        resource,
-        feedback_items,
-        & &1.comment,
-        ["bug", "feature_request", "question"]
-      )
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.classify_each/5` instead.
   """
-  @spec classify_each(
-          Resource.t(),
-          list(map()),
-          (map() -> String.t()),
-          list(String.t()),
+  defdelegate classify_each(resource, items, text_fn, labels, opts \\ []), to: Integration
+
+  @doc false
+  @spec legacy_classify_each(
+          Integration.t(),
+          list(),
+          (term() -> String.t()),
+          [String.t()],
           keyword()
         ) ::
-          {:ok, list(map())}
-  def classify_each(resource, items, text_fn, labels, opts \\ []) do
-    results =
-      Enum.map(items, fn item ->
-        text = text_fn.(item)
-
-        case Resource.classify(resource, text, labels, opts) do
-          {:ok, classification} ->
-            Map.merge(item, %{
-              classification: classification.label,
-              confidence: classification.confidence
-            })
-
-          {:error, _} ->
-            Map.put(item, :classification, :unknown)
-        end
-      end)
-
-    {:ok, results}
+          {:ok, list()} | {:error, term()}
+  def legacy_classify_each(resource, items, text_fn, labels, opts \\ []) do
+    classify_each(resource, items, text_fn, labels, opts)
   end
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.enrich_each/4 instead"
   @doc """
   Enrich each item in a collection with AI-generated content.
 
-  Takes a collection of items, generates a prompt for each using `prompt_fn`,
-  and adds the AI response as `:ai_enrichment` field.
-
-  ## Parameters
-
-    * `resource` - The FlowStone.AI.Resource instance
-    * `items` - Collection of items to enrich
-    * `prompt_fn` - Function to generate prompt from each item
-    * `opts` - Additional options to pass to the generator (optional)
-
-  ## Returns
-
-    * `{:ok, enriched_items}` - Items with `:ai_enrichment` field added
-    * Items that fail enrichment remain unchanged
-
-  ## Examples
-
-      FlowStone.AI.Assets.enrich_each(
-        resource,
-        products,
-        fn product -> "Write a catchy tagline for: \#{product.name}" end
-      )
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.enrich_each/4` instead.
   """
-  @spec enrich_each(Resource.t(), list(map()), (map() -> String.t()), keyword()) ::
-          {:ok, list(map())}
-  def enrich_each(resource, items, prompt_fn, opts \\ []) do
-    results =
-      Enum.map(items, fn item ->
-        prompt = prompt_fn.(item)
+  defdelegate enrich_each(resource, items, prompt_fn, opts \\ []), to: Integration
 
-        case Resource.generate(resource, prompt, opts) do
-          {:ok, response} ->
-            Map.put(item, :ai_enrichment, response.content)
-
-          {:error, _} ->
-            item
-        end
-      end)
-
-    {:ok, results}
+  @doc false
+  @spec legacy_enrich_each(Integration.t(), list(), (term() -> String.t()), keyword()) ::
+          {:ok, list()} | {:error, term()}
+  def legacy_enrich_each(resource, items, prompt_fn, opts \\ []) do
+    enrich_each(resource, items, prompt_fn, opts)
   end
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.embed_each/4 instead"
   @doc """
   Generate embeddings for each item in a collection.
 
-  Takes a collection of items, extracts text from each using `text_fn`,
-  generates embeddings, and adds them as `:embedding` field.
-
-  Uses batch embedding for better performance when the adapter supports it.
-
-  ## Parameters
-
-    * `resource` - The FlowStone.AI.Resource instance
-    * `items` - Collection of items to embed
-    * `text_fn` - Function to extract text from each item
-    * `opts` - Additional options to pass to the embedder (optional)
-
-  ## Returns
-
-    * `{:ok, embedded_items}` - Items with `:embedding` field added
-    * `{:error, reason}` - If batch embedding fails
-
-  ## Examples
-
-      FlowStone.AI.Assets.embed_each(
-        resource,
-        documents,
-        & &1.content
-      )
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.embed_each/4` instead.
   """
-  @spec embed_each(Resource.t(), list(map()), (map() -> String.t()), keyword()) ::
-          {:ok, list(map())} | {:error, term()}
-  def embed_each(resource, items, text_fn, opts \\ []) do
-    texts = Enum.map(items, text_fn)
+  defdelegate embed_each(resource, items, text_fn, opts \\ []), to: Integration
 
-    case Resource.batch_embed(resource, texts, opts) do
-      {:ok, vectors} ->
-        results =
-          items
-          |> Enum.zip(vectors)
-          |> Enum.map(fn {item, vector} ->
-            Map.put(item, :embedding, vector)
-          end)
-
-        {:ok, results}
-
-      {:error, _} = error ->
-        error
-    end
+  @doc false
+  @spec legacy_embed_each(Integration.t(), list(), (term() -> String.t()), keyword()) ::
+          {:ok, list()} | {:error, term()}
+  def legacy_embed_each(resource, items, text_fn, opts \\ []) do
+    embed_each(resource, items, text_fn, opts)
   end
 end

@@ -12,6 +12,10 @@
 
 FlowStone integration for [altar_ai](https://github.com/nshkrdotcom/altar_ai) - AI-powered data pipeline assets with automatic provider fallback and unified telemetry.
 
+> **Deprecation Notice**: `flowstone_ai` is deprecated in favor of using
+> `Altar.AI.Integrations.FlowStone` directly from the `altar_ai` package. This
+> package remains as a thin compatibility layer.
+
 ## What is FlowStone.AI?
 
 **FlowStone.AI** is a thin integration layer that brings the power of `altar_ai` into FlowStone's resource system. It enables you to build AI-powered data pipelines with:
@@ -135,6 +139,11 @@ asset :summarized_articles do
   end
 end
 ```
+
+## Examples
+
+Run `examples/basic_resource.exs` to exercise the resource and helper
+functions with the Mock adapter.
 
 #### Classification (with Helper)
 

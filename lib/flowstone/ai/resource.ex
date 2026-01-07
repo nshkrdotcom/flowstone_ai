@@ -2,6 +2,11 @@ defmodule FlowStone.AI.Resource do
   @moduledoc """
   FlowStone Resource that provides AI capabilities to assets.
 
+  > **Deprecation Notice**: This module is deprecated in favor of using
+  > `Altar.AI.Integrations.FlowStone` directly from the `altar_ai` package.
+  > All functions delegate to the unified integration while maintaining
+  > backward compatibility.
+
   ## Usage
 
   In your pipeline:
@@ -26,160 +31,111 @@ defmodule FlowStone.AI.Resource do
 
   @behaviour FlowStone.Resource
 
-  defstruct [:adapter, :opts]
+  alias Altar.AI.Integrations.FlowStone, as: Integration
 
-  @type t :: %__MODULE__{
-          adapter: struct(),
-          opts: keyword()
-        }
+  @type t :: Integration.t()
 
+  @impl true
   @doc """
   Set up the AI resource.
 
-  This is the FlowStone.Resource callback. For manual initialization, use `init/1`.
-
-  ## Options
-
-    * `:adapter` - The altar_ai adapter module to use (default: `Altar.AI.Adapters.Composite`)
-    * `:adapter_opts` - Options to pass to the adapter initialization (default: `[]`)
+  This is the FlowStone.Resource callback. Delegates to `Altar.AI.Integrations.FlowStone.setup/1`.
   """
-  @impl true
   def setup(config) when is_map(config) do
-    # Convert map config to keyword list for init
-    opts = Map.to_list(config)
-    init(opts)
+    config
+    |> Map.to_list()
+    |> Integration.setup()
   end
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.init/1 instead"
   @doc """
   Initialize the AI resource.
 
-  ## Options
-
-    * `:adapter` - The altar_ai adapter module to use (default: `Altar.AI.Adapters.Composite`)
-    * `:adapter_opts` - Options to pass to the adapter initialization (default: `[]`)
-
-  ## Examples
-
-      {:ok, resource} = FlowStone.AI.Resource.init()
-
-      {:ok, resource} = FlowStone.AI.Resource.init(
-        adapter: Altar.AI.Adapters.Gemini,
-        adapter_opts: [api_key: "..."]
-      )
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.init/1` instead.
   """
-  def init(opts \\ []) do
-    adapter_mod = Keyword.get(opts, :adapter, get_config(:adapter, Altar.AI.Adapters.Composite))
-    adapter_opts = Keyword.get(opts, :adapter_opts, get_config(:adapter_opts, []))
+  defdelegate init(opts \\ []), to: Integration
 
-    adapter =
-      if adapter_mod == Altar.AI.Adapters.Composite do
-        Altar.AI.Adapters.Composite.default()
-      else
-        adapter_mod.new(adapter_opts)
-      end
-
-    {:ok, %__MODULE__{adapter: adapter, opts: opts}}
-  end
+  @doc false
+  @spec legacy_init(keyword()) :: {:ok, t()} | {:error, term()}
+  def legacy_init(opts \\ []), do: init(opts)
 
   @impl true
-  def teardown(_resource), do: :ok
+  @doc """
+  Teardown the AI resource.
+
+  Delegates to `Altar.AI.Integrations.FlowStone.teardown/1`.
+  """
+  defdelegate teardown(resource), to: Integration
 
   @impl true
-  def health_check(%__MODULE__{adapter: adapter}) do
-    # Check if adapter has basic capabilities
-    case Altar.AI.capabilities(adapter) do
-      %{generate: true} -> :healthy
-      _ -> {:unhealthy, :no_capabilities}
-    end
-  rescue
-    _ -> {:unhealthy, :adapter_error}
-  end
+  @doc """
+  Check the health of the AI resource.
 
+  Delegates to `Altar.AI.Integrations.FlowStone.health_check/1`.
+  """
+  defdelegate health_check(resource), to: Integration
+
+  @deprecated "Use Altar.AI.Integrations.FlowStone.generate/3 instead"
   @doc """
   Generate text using the AI adapter.
 
-  Delegates to `Altar.AI.generate/3`.
-
-  ## Examples
-
-      {:ok, response} = FlowStone.AI.Resource.generate(resource, "Explain quantum computing")
-      IO.puts(response.content)
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.generate/3` instead.
   """
-  @spec generate(t(), String.t(), keyword()) :: {:ok, Altar.AI.Response.t()} | {:error, term()}
-  def generate(%__MODULE__{adapter: adapter}, prompt, opts \\ []) do
-    Altar.AI.generate(adapter, prompt, opts)
-  end
+  defdelegate generate(resource, prompt, opts \\ []), to: Integration
 
+  @doc false
+  @spec legacy_generate(t(), String.t(), keyword()) ::
+          {:ok, Altar.AI.Response.t()} | {:error, term()}
+  def legacy_generate(resource, prompt, opts \\ []), do: generate(resource, prompt, opts)
+
+  @deprecated "Use Altar.AI.Integrations.FlowStone.embed/3 instead"
   @doc """
   Generate embeddings for text.
 
-  Delegates to `Altar.AI.embed/3`.
-
-  ## Examples
-
-      {:ok, vector} = FlowStone.AI.Resource.embed(resource, "Hello world")
-      length(vector) # => 768 (or adapter-specific dimension)
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.embed/3` instead.
   """
-  @spec embed(t(), String.t(), keyword()) :: {:ok, list(float())} | {:error, term()}
-  def embed(%__MODULE__{adapter: adapter}, text, opts \\ []) do
-    Altar.AI.embed(adapter, text, opts)
-  end
+  defdelegate embed(resource, text, opts \\ []), to: Integration
 
+  @doc false
+  @spec legacy_embed(t(), String.t(), keyword()) :: {:ok, [number()]} | {:error, term()}
+  def legacy_embed(resource, text, opts \\ []), do: embed(resource, text, opts)
+
+  @deprecated "Use Altar.AI.Integrations.FlowStone.batch_embed/3 instead"
   @doc """
   Generate embeddings for multiple texts in batch.
 
-  Delegates to `Altar.AI.batch_embed/3`.
-
-  ## Examples
-
-      {:ok, vectors} = FlowStone.AI.Resource.batch_embed(resource, ["text1", "text2"])
-      length(vectors) # => 2
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.batch_embed/3` instead.
   """
-  @spec batch_embed(t(), list(String.t()), keyword()) ::
-          {:ok, list(list(float()))} | {:error, term()}
-  def batch_embed(%__MODULE__{adapter: adapter}, texts, opts \\ []) do
-    Altar.AI.batch_embed(adapter, texts, opts)
-  end
+  defdelegate batch_embed(resource, texts, opts \\ []), to: Integration
 
+  @doc false
+  @spec legacy_batch_embed(t(), [String.t()], keyword()) ::
+          {:ok, [[number()]]} | {:error, term()}
+  def legacy_batch_embed(resource, texts, opts \\ []), do: batch_embed(resource, texts, opts)
+
+  @deprecated "Use Altar.AI.Integrations.FlowStone.classify/4 instead"
   @doc """
   Classify text into one of the provided labels.
 
-  Delegates to `Altar.AI.classify/4`.
-
-  ## Examples
-
-      {:ok, result} = FlowStone.AI.Resource.classify(
-        resource,
-        "I love this product!",
-        ["positive", "negative", "neutral"]
-      )
-      result.label # => "positive"
-      result.confidence # => 0.95
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.classify/4` instead.
   """
-  @spec classify(t(), String.t(), list(String.t()), keyword()) ::
-          {:ok, Altar.AI.Classification.t()} | {:error, term()}
-  def classify(%__MODULE__{adapter: adapter}, text, labels, opts \\ []) do
-    Altar.AI.classify(adapter, text, labels, opts)
-  end
+  defdelegate classify(resource, text, labels, opts \\ []), to: Integration
 
+  @doc false
+  @spec legacy_classify(t(), String.t(), [String.t()], keyword()) ::
+          {:ok, map()} | {:error, term()}
+  def legacy_classify(resource, text, labels, opts \\ []),
+    do: classify(resource, text, labels, opts)
+
+  @deprecated "Use Altar.AI.Integrations.FlowStone.capabilities/1 instead"
   @doc """
   Get the capabilities of the configured adapter.
 
-  Delegates to `Altar.AI.capabilities/1`.
-
-  ## Examples
-
-      capabilities = FlowStone.AI.Resource.capabilities(resource)
-      capabilities.text_generation # => true
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.capabilities/1` instead.
   """
-  @spec capabilities(t()) :: Altar.AI.Capabilities.t()
-  def capabilities(%__MODULE__{adapter: adapter}) do
-    Altar.AI.capabilities(adapter)
-  end
+  defdelegate capabilities(resource), to: Integration
 
-  # Private helpers
-
-  defp get_config(key, default) do
-    Application.get_env(:flowstone_ai, key, default)
-  end
+  @doc false
+  @spec legacy_capabilities(t()) :: map()
+  def legacy_capabilities(resource), do: capabilities(resource)
 end

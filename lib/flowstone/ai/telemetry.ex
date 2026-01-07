@@ -2,6 +2,9 @@ defmodule FlowStone.AI.Telemetry do
   @moduledoc """
   Bridges altar_ai telemetry events to FlowStone's telemetry system.
 
+  > **Deprecation Notice**: This module is deprecated in favor of using
+  > `Altar.AI.Integrations.FlowStone.Telemetry` directly from the `altar_ai` package.
+
   Attaches handlers that forward `[:altar, :ai, *]` events to
   `[:flowstone, :ai, *]` namespace for unified observability.
 
@@ -42,51 +45,29 @@ defmodule FlowStone.AI.Telemetry do
     * `:kind`, `:reason`, `:stacktrace` - For exception events
   """
 
-  require Logger
+  alias Altar.AI.Integrations.FlowStone.Telemetry, as: IntegrationTelemetry
 
-  @events [
-    [:altar, :ai, :generate, :start],
-    [:altar, :ai, :generate, :stop],
-    [:altar, :ai, :generate, :exception],
-    [:altar, :ai, :embed, :start],
-    [:altar, :ai, :embed, :stop],
-    [:altar, :ai, :embed, :exception]
-  ]
-
+  @deprecated "Use Altar.AI.Integrations.FlowStone.Telemetry.attach/0 instead"
   @doc """
   Attach telemetry handlers to bridge altar_ai events to FlowStone namespace.
 
-  This function is idempotent - calling it multiple times will not create
-  duplicate handlers.
-
-  Returns `:ok` on success.
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.Telemetry.attach/0` instead.
   """
-  @spec attach() :: :ok
-  def attach do
-    :telemetry.attach_many(
-      "flowstone-ai-bridge",
-      @events,
-      &handle_event/4,
-      nil
-    )
+  defdelegate attach(), to: IntegrationTelemetry
 
-    Logger.debug("FlowStone.AI telemetry bridge attached")
-    :ok
-  end
+  @doc false
+  @spec legacy_attach() :: :ok | {:error, term()}
+  def legacy_attach, do: attach()
 
+  @deprecated "Use Altar.AI.Integrations.FlowStone.Telemetry.detach/0 instead"
   @doc """
   Detach the telemetry handlers.
 
-  Useful for testing or if you need to disable the bridge.
+  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.Telemetry.detach/0` instead.
   """
-  @spec detach() :: :ok | {:error, :not_found}
-  def detach do
-    :telemetry.detach("flowstone-ai-bridge")
-  end
+  defdelegate detach(), to: IntegrationTelemetry
 
-  # Private event handler
-
-  defp handle_event([:altar, :ai | rest], measurements, metadata, _config) do
-    :telemetry.execute([:flowstone, :ai | rest], measurements, metadata)
-  end
+  @doc false
+  @spec legacy_detach() :: :ok | {:error, term()}
+  def legacy_detach, do: detach()
 end

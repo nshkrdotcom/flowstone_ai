@@ -1,15 +1,16 @@
 defmodule FlowStone.AI.AssetsTest do
   use ExUnit.Case, async: true
 
-  alias FlowStone.AI.{Assets, Resource}
   alias Altar.AI.Adapters.Mock
+  alias Altar.AI.Classification
+  alias FlowStone.AI.{Assets, Resource}
 
   describe "classify_each/5" do
     setup do
       call_count = :atomics.new(1, [])
 
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -30,7 +31,7 @@ defmodule FlowStone.AI.AssetsTest do
                     _ -> 0.75
                   end
 
-                {:ok, Altar.AI.Classification.new(label, confidence, %{label => confidence})}
+                {:ok, Classification.new(label, confidence, %{label => confidence})}
               end
             }
           ]
@@ -47,7 +48,7 @@ defmodule FlowStone.AI.AssetsTest do
 
     test "classifies all items successfully", %{resource: resource, items: items} do
       labels = ["positive", "negative", "neutral"]
-      {:ok, results} = Assets.classify_each(resource, items, & &1.text, labels)
+      {:ok, results} = Assets.legacy_classify_each(resource, items, & &1.text, labels)
 
       assert length(results) == 3
 
@@ -62,7 +63,8 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "preserves original item data", %{resource: resource, items: items} do
-      {:ok, results} = Assets.classify_each(resource, items, & &1.text, ["positive", "negative"])
+      {:ok, results} =
+        Assets.legacy_classify_each(resource, items, & &1.text, ["positive", "negative"])
 
       Enum.each(results, fn result ->
         assert Map.has_key?(result, :id)
@@ -72,7 +74,7 @@ defmodule FlowStone.AI.AssetsTest do
 
     test "accepts additional options", %{resource: resource, items: items} do
       {:ok, results} =
-        Assets.classify_each(resource, items, & &1.text, ["positive", "negative"],
+        Assets.legacy_classify_each(resource, items, & &1.text, ["positive", "negative"],
           temperature: 0.5
         )
 
@@ -80,7 +82,7 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "handles empty list", %{resource: resource} do
-      {:ok, results} = Assets.classify_each(resource, [], & &1.text, ["label1", "label2"])
+      {:ok, results} = Assets.legacy_classify_each(resource, [], & &1.text, ["label1", "label2"])
 
       assert results == []
     end
@@ -91,7 +93,7 @@ defmodule FlowStone.AI.AssetsTest do
       call_count = :atomics.new(1, [])
 
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -115,7 +117,7 @@ defmodule FlowStone.AI.AssetsTest do
 
     test "enriches all items successfully", %{resource: resource, items: items} do
       {:ok, results} =
-        Assets.enrich_each(resource, items, fn item ->
+        Assets.legacy_enrich_each(resource, items, fn item ->
           "Summarize: #{item.content}"
         end)
 
@@ -127,7 +129,7 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "preserves original item data", %{resource: resource, items: items} do
-      {:ok, results} = Assets.enrich_each(resource, items, fn _ -> "prompt" end)
+      {:ok, results} = Assets.legacy_enrich_each(resource, items, fn _ -> "prompt" end)
 
       Enum.each(results, fn result ->
         assert Map.has_key?(result, :id)
@@ -137,14 +139,14 @@ defmodule FlowStone.AI.AssetsTest do
 
     test "accepts additional options", %{resource: resource, items: items} do
       {:ok, results} =
-        Assets.enrich_each(resource, items, fn _ -> "prompt" end, max_tokens: 50)
+        Assets.legacy_enrich_each(resource, items, fn _ -> "prompt" end, max_tokens: 50)
 
       assert length(results) == 3
     end
 
     test "handles empty list" do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -153,14 +155,14 @@ defmodule FlowStone.AI.AssetsTest do
           ]
         )
 
-      {:ok, results} = Assets.enrich_each(resource, [], fn _ -> "prompt" end)
+      {:ok, results} = Assets.legacy_enrich_each(resource, [], fn _ -> "prompt" end)
 
       assert results == []
     end
 
     test "handles individual enrichment failures gracefully" do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -171,7 +173,7 @@ defmodule FlowStone.AI.AssetsTest do
 
       items = [%{id: 1, content: "test"}]
 
-      {:ok, results} = Assets.enrich_each(resource, items, fn _ -> "prompt" end)
+      {:ok, results} = Assets.legacy_enrich_each(resource, items, fn _ -> "prompt" end)
 
       # Item should remain unchanged on error
       assert results == items
@@ -181,7 +183,7 @@ defmodule FlowStone.AI.AssetsTest do
   describe "embed_each/4" do
     setup do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -206,7 +208,7 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "embeds all items successfully", %{resource: resource, items: items} do
-      {:ok, results} = Assets.embed_each(resource, items, & &1.text)
+      {:ok, results} = Assets.legacy_embed_each(resource, items, & &1.text)
 
       assert length(results) == 3
 
@@ -216,7 +218,7 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "preserves original item data", %{resource: resource, items: items} do
-      {:ok, results} = Assets.embed_each(resource, items, & &1.text)
+      {:ok, results} = Assets.legacy_embed_each(resource, items, & &1.text)
 
       Enum.each(results, fn result ->
         assert Map.has_key?(result, :id)
@@ -225,14 +227,14 @@ defmodule FlowStone.AI.AssetsTest do
     end
 
     test "accepts additional options", %{resource: resource, items: items} do
-      {:ok, results} = Assets.embed_each(resource, items, & &1.text, model: "custom-model")
+      {:ok, results} = Assets.legacy_embed_each(resource, items, & &1.text, model: "custom-model")
 
       assert length(results) == 3
     end
 
     test "handles empty list" do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -241,14 +243,14 @@ defmodule FlowStone.AI.AssetsTest do
           ]
         )
 
-      {:ok, results} = Assets.embed_each(resource, [], & &1.text)
+      {:ok, results} = Assets.legacy_embed_each(resource, [], & &1.text)
 
       assert results == []
     end
 
     test "returns error if batch embedding fails" do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
@@ -259,18 +261,18 @@ defmodule FlowStone.AI.AssetsTest do
 
       items = [%{id: 1, text: "test"}]
 
-      assert {:error, _} = Assets.embed_each(resource, items, & &1.text)
+      assert {:error, _} = Assets.legacy_embed_each(resource, items, & &1.text)
     end
   end
 
   describe "text extraction functions" do
     setup do
       {:ok, resource} =
-        Resource.init(
+        Resource.legacy_init(
           adapter: Mock,
           adapter_opts: [
             responses: %{
-              classify: {:ok, Altar.AI.Classification.new("test", 0.9, %{"test" => 0.9})}
+              classify: {:ok, Classification.new("test", 0.9, %{"test" => 0.9})}
             }
           ]
         )
@@ -284,7 +286,7 @@ defmodule FlowStone.AI.AssetsTest do
       ]
 
       {:ok, results} =
-        Assets.classify_each(resource, items, fn item -> item.user.comment end, ["test"])
+        Assets.legacy_classify_each(resource, items, fn item -> item.user.comment end, ["test"])
 
       assert Enum.at(results, 0).classification == "test"
     end
@@ -294,7 +296,7 @@ defmodule FlowStone.AI.AssetsTest do
         %{body: "content here"}
       ]
 
-      {:ok, results} = Assets.classify_each(resource, items, & &1.body, ["test"])
+      {:ok, results} = Assets.legacy_classify_each(resource, items, & &1.body, ["test"])
 
       assert Enum.at(results, 0).classification == "test"
     end

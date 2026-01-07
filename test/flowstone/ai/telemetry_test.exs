@@ -1,14 +1,15 @@
 defmodule FlowStone.AI.TelemetryTest do
-  use ExUnit.Case, async: true
+  # Telemetry handlers are global, so tests cannot run in parallel
+  use ExUnit.Case, async: false
 
   alias FlowStone.AI.Telemetry
 
   setup do
     # Ensure clean state
-    Telemetry.detach()
+    Telemetry.legacy_detach()
 
     on_exit(fn ->
-      Telemetry.detach()
+      Telemetry.legacy_detach()
     end)
 
     :ok
@@ -16,32 +17,32 @@ defmodule FlowStone.AI.TelemetryTest do
 
   describe "attach/0" do
     test "attaches telemetry handlers successfully" do
-      assert :ok = Telemetry.attach()
+      assert :ok = Telemetry.legacy_attach()
     end
 
     test "is idempotent" do
-      assert :ok = Telemetry.attach()
+      assert :ok = Telemetry.legacy_attach()
 
       # Detach and reattach should work
-      assert :ok = Telemetry.detach()
-      assert :ok = Telemetry.attach()
+      assert :ok = Telemetry.legacy_detach()
+      assert :ok = Telemetry.legacy_attach()
     end
   end
 
   describe "detach/0" do
     test "detaches telemetry handlers successfully" do
-      Telemetry.attach()
-      assert :ok = Telemetry.detach()
+      Telemetry.legacy_attach()
+      assert :ok = Telemetry.legacy_detach()
     end
 
     test "returns error when not attached" do
-      assert {:error, :not_found} = Telemetry.detach()
+      assert {:error, :not_found} = Telemetry.legacy_detach()
     end
   end
 
   describe "event forwarding" do
     setup do
-      Telemetry.attach()
+      Telemetry.legacy_attach()
       :ok
     end
 
@@ -206,7 +207,7 @@ defmodule FlowStone.AI.TelemetryTest do
 
   describe "does not forward non-altar events" do
     setup do
-      Telemetry.attach()
+      Telemetry.legacy_attach()
       :ok
     end
 
