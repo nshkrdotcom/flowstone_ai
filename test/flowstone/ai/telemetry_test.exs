@@ -6,10 +6,10 @@ defmodule FlowStone.AI.TelemetryTest do
 
   setup do
     # Ensure clean state
-    Telemetry.legacy_detach()
+    Telemetry.detach()
 
     on_exit(fn ->
-      Telemetry.legacy_detach()
+      Telemetry.detach()
     end)
 
     :ok
@@ -17,36 +17,36 @@ defmodule FlowStone.AI.TelemetryTest do
 
   describe "attach/0" do
     test "attaches telemetry handlers successfully" do
-      assert :ok = Telemetry.legacy_attach()
+      assert :ok = Telemetry.attach()
     end
 
     test "is idempotent" do
-      assert :ok = Telemetry.legacy_attach()
+      assert :ok = Telemetry.attach()
 
       # Detach and reattach should work
-      assert :ok = Telemetry.legacy_detach()
-      assert :ok = Telemetry.legacy_attach()
+      assert :ok = Telemetry.detach()
+      assert :ok = Telemetry.attach()
     end
   end
 
   describe "detach/0" do
     test "detaches telemetry handlers successfully" do
-      Telemetry.legacy_attach()
-      assert :ok = Telemetry.legacy_detach()
+      Telemetry.attach()
+      assert :ok = Telemetry.detach()
     end
 
     test "returns error when not attached" do
-      assert {:error, :not_found} = Telemetry.legacy_detach()
+      assert {:error, :not_found} = Telemetry.detach()
     end
   end
 
   describe "event forwarding" do
     setup do
-      Telemetry.legacy_attach()
+      Telemetry.attach()
       :ok
     end
 
-    test "forwards generate start events" do
+    test "forwards LLM complete start events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -61,14 +61,14 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{system_time: 123_456_789}
       metadata = %{adapter: :test_adapter, prompt: "test prompt"}
 
-      :telemetry.execute([:altar, :ai, :generate, :start], measurements, metadata)
+      :telemetry.execute([:portfolio_index, :llm, :complete, :start], measurements, metadata)
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-generate-start")
     end
 
-    test "forwards generate stop events" do
+    test "forwards LLM complete stop events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -83,14 +83,14 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{duration: 1_000_000}
       metadata = %{adapter: :test_adapter}
 
-      :telemetry.execute([:altar, :ai, :generate, :stop], measurements, metadata)
+      :telemetry.execute([:portfolio_index, :llm, :complete, :stop], measurements, metadata)
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-generate-stop")
     end
 
-    test "forwards generate exception events" do
+    test "forwards LLM complete exception events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -105,14 +105,18 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{duration: 500_000}
       metadata = %{kind: :error, reason: :timeout, stacktrace: []}
 
-      :telemetry.execute([:altar, :ai, :generate, :exception], measurements, metadata)
+      :telemetry.execute(
+        [:portfolio_index, :llm, :complete, :exception],
+        measurements,
+        metadata
+      )
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-generate-exception")
     end
 
-    test "forwards embed start events" do
+    test "forwards embedder embed start events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -127,14 +131,14 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{system_time: 123_456_789}
       metadata = %{adapter: :test_adapter, text: "test text"}
 
-      :telemetry.execute([:altar, :ai, :embed, :start], measurements, metadata)
+      :telemetry.execute([:portfolio_index, :embedder, :embed, :start], measurements, metadata)
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-embed-start")
     end
 
-    test "forwards embed stop events" do
+    test "forwards embedder embed stop events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -149,14 +153,14 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{duration: 800_000}
       metadata = %{adapter: :test_adapter}
 
-      :telemetry.execute([:altar, :ai, :embed, :stop], measurements, metadata)
+      :telemetry.execute([:portfolio_index, :embedder, :embed, :stop], measurements, metadata)
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-embed-stop")
     end
 
-    test "forwards embed exception events" do
+    test "forwards embedder embed exception events" do
       test_pid = self()
 
       :telemetry.attach(
@@ -171,11 +175,41 @@ defmodule FlowStone.AI.TelemetryTest do
       measurements = %{duration: 300_000}
       metadata = %{kind: :error, reason: :network_error, stacktrace: []}
 
-      :telemetry.execute([:altar, :ai, :embed, :exception], measurements, metadata)
+      :telemetry.execute(
+        [:portfolio_index, :embedder, :embed, :exception],
+        measurements,
+        metadata
+      )
 
       assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
 
       :telemetry.detach("test-flowstone-embed-exception")
+    end
+
+    test "forwards agent session execute events" do
+      test_pid = self()
+
+      :telemetry.attach(
+        "test-flowstone-agent-start",
+        [:flowstone, :ai, :agent, :start],
+        fn _event, measurements, metadata, _config ->
+          send(test_pid, {:flowstone_event, measurements, metadata})
+        end,
+        nil
+      )
+
+      measurements = %{system_time: 123_456_789}
+      metadata = %{session_id: "test_session"}
+
+      :telemetry.execute(
+        [:portfolio_index, :agent_session, :execute, :start],
+        measurements,
+        metadata
+      )
+
+      assert_receive {:flowstone_event, ^measurements, ^metadata}, 100
+
+      :telemetry.detach("test-flowstone-agent-start")
     end
 
     test "preserves all metadata fields" do
@@ -197,7 +231,11 @@ defmodule FlowStone.AI.TelemetryTest do
         nested: %{data: "value"}
       }
 
-      :telemetry.execute([:altar, :ai, :generate, :start], %{system_time: 0}, metadata)
+      :telemetry.execute(
+        [:portfolio_index, :llm, :complete, :start],
+        %{system_time: 0},
+        metadata
+      )
 
       assert_receive {:metadata, ^metadata}, 100
 
@@ -205,9 +243,9 @@ defmodule FlowStone.AI.TelemetryTest do
     end
   end
 
-  describe "does not forward non-altar events" do
+  describe "does not forward non-portfolio events" do
     setup do
-      Telemetry.legacy_attach()
+      Telemetry.attach()
       :ok
     end
 

@@ -1,25 +1,10 @@
 defmodule FlowStone.AI do
   @moduledoc """
-  FlowStone integration for altar_ai.
-
-  > **Deprecation Notice**: This package is deprecated in favor of using
-  > `Altar.AI.Integrations.FlowStone` directly from the `altar_ai` package.
-  > This module now delegates all functionality to the unified integration.
-  >
-  > **Migration Path**:
-  > ```elixir
-  > # Before (flowstone_ai)
-  > {:ok, resource} = FlowStone.AI.resource_init(opts)
-  > FlowStone.AI.setup_telemetry()
-  >
-  > # After (altar_ai)
-  > {:ok, resource} = Altar.AI.Integrations.FlowStone.init(opts)
-  > Altar.AI.Integrations.FlowStone.setup_telemetry()
-  > ```
+  FlowStone integration for portfolio AI providers.
 
   Provides AI capabilities as a FlowStone Resource, enabling
-  AI-powered data pipeline assets with automatic provider
-  fallback and unified telemetry.
+  AI-powered data pipeline assets with access to all portfolio
+  LLM and Embedder providers, rate limiting, and agent session support.
 
   ## Installation
 
@@ -31,14 +16,15 @@ defmodule FlowStone.AI do
 
       # config/config.exs
       config :flowstone_ai,
-        adapter: Altar.AI.Adapters.Gemini,
-        adapter_opts: [api_key: System.get_env("GEMINI_API_KEY")]
+        llm_adapter: PortfolioIndex.Adapters.LLM.Gemini,
+        embedder_adapter: PortfolioIndex.Adapters.Embedder.Gemini,
+        agent_session_adapter: PortfolioIndex.Adapters.AgentSession.Claude
 
   ## Usage
 
   Register the AI resource and use in assets:
 
-      FlowStone.Resources.register(:ai, FlowStone.AI.Resource, [])
+      FlowStone.Resources.register(:ai, FlowStone.AI.Resource, %{})
 
       asset :enriched_data do
         requires [:ai]
@@ -53,30 +39,46 @@ defmodule FlowStone.AI do
 
   ## Telemetry
 
-  FlowStone.AI bridges altar_ai telemetry events to FlowStone's telemetry system.
-  Call `setup_telemetry/0` during application startup to enable this bridge.
+  FlowStone.AI bridges portfolio_index telemetry events to FlowStone's
+  telemetry system. Call `setup_telemetry/0` during application startup.
 
       def start(_type, _args) do
         FlowStone.AI.setup_telemetry()
         # ... rest of startup
       end
 
-  Events are forwarded from `[:altar, :ai, ...]` to `[:flowstone, :ai, ...]`.
+  Events are forwarded from `[:portfolio_index, ...]` to `[:flowstone, :ai, ...]`.
+
+  ## Available Providers
+
+  Through portfolio_index, FlowStone.AI supports:
+
+    * **LLM**: Gemini, Anthropic, OpenAI, Codex, Ollama, vLLM
+    * **Embedder**: Gemini, OpenAI, Ollama, Bumblebee, Function
+    * **AgentSession**: Claude, Codex
   """
 
-  @deprecated "Use Altar.AI.Integrations.FlowStone.init/1 instead"
+  alias FlowStone.AI.Resource
+  alias FlowStone.AI.Telemetry
+
   @doc """
   Initialize the AI resource with the given options.
 
-  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.init/1` instead.
+  This is a convenience wrapper around `FlowStone.AI.Resource.setup/1`.
   """
-  defdelegate resource_init(opts), to: Altar.AI.Integrations.FlowStone, as: :init
+  @spec resource_init(keyword()) :: {:ok, Resource.t()} | {:error, term()}
+  def resource_init(opts \\ []) do
+    opts
+    |> Map.new()
+    |> Resource.setup()
+  end
 
-  @deprecated "Use Altar.AI.Integrations.FlowStone.setup_telemetry/0 instead"
   @doc """
-  Set up telemetry bridge to forward altar_ai events to FlowStone's telemetry namespace.
-
-  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.setup_telemetry/0` instead.
+  Set up telemetry bridge to forward portfolio_index events to FlowStone's
+  telemetry namespace.
   """
-  defdelegate setup_telemetry(), to: Altar.AI.Integrations.FlowStone
+  @spec setup_telemetry() :: :ok | {:error, term()}
+  def setup_telemetry do
+    Telemetry.attach()
+  end
 end

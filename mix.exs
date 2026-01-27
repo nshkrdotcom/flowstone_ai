@@ -52,15 +52,16 @@ defmodule FlowStone.AI.MixProject do
   defp deps do
     [
       # Core dependencies (path for local dev)
-      {:altar_ai, path: "../altar_ai"},
       {:flowstone, path: "../flowstone"},
+      {:portfolio_core, path: "../portfolio_core"},
+      {:portfolio_index, path: "../portfolio_index"},
 
       # Test dependencies
       {:stream_data, "~> 1.0", only: :test},
       {:supertester, path: "../supertester", only: :test},
 
       # Dev/docs dependencies
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test}
@@ -69,9 +70,10 @@ defmodule FlowStone.AI.MixProject do
 
   defp description do
     """
-    FlowStone integration for altar_ai - AI-powered data pipeline assets.
+    FlowStone integration for portfolio AI providers - AI-powered data pipeline assets.
     Provides FlowStone.AI.Resource for unified AI access and FlowStone.AI.Assets
     DSL helpers (classify_each, enrich_each, embed_each) with telemetry bridging.
+    Delegates to portfolio_core/portfolio_index for LLM, Embedder, and AgentSession support.
     """
   end
 

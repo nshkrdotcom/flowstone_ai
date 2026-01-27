@@ -1,11 +1,8 @@
 defmodule FlowStone.AI.Telemetry do
   @moduledoc """
-  Bridges altar_ai telemetry events to FlowStone's telemetry system.
+  Bridges portfolio_index telemetry events to FlowStone's telemetry system.
 
-  > **Deprecation Notice**: This module is deprecated in favor of using
-  > `Altar.AI.Integrations.FlowStone.Telemetry` directly from the `altar_ai` package.
-
-  Attaches handlers that forward `[:altar, :ai, *]` events to
+  Attaches handlers that forward `[:portfolio_index, *]` events to
   `[:flowstone, :ai, *]` namespace for unified observability.
 
   ## Usage
@@ -21,53 +18,81 @@ defmodule FlowStone.AI.Telemetry do
 
   The following events are bridged:
 
-    * `[:altar, :ai, :generate, :start]` -> `[:flowstone, :ai, :generate, :start]`
-    * `[:altar, :ai, :generate, :stop]` -> `[:flowstone, :ai, :generate, :stop]`
-    * `[:altar, :ai, :generate, :exception]` -> `[:flowstone, :ai, :generate, :exception]`
-    * `[:altar, :ai, :embed, :start]` -> `[:flowstone, :ai, :embed, :start]`
-    * `[:altar, :ai, :embed, :stop]` -> `[:flowstone, :ai, :embed, :stop]`
-    * `[:altar, :ai, :embed, :exception]` -> `[:flowstone, :ai, :embed, :exception]`
+    * `[:portfolio_index, :llm, :complete, :start]` -> `[:flowstone, :ai, :generate, :start]`
+    * `[:portfolio_index, :llm, :complete, :stop]` -> `[:flowstone, :ai, :generate, :stop]`
+    * `[:portfolio_index, :llm, :complete, :exception]` -> `[:flowstone, :ai, :generate, :exception]`
+    * `[:portfolio_index, :embedder, :embed, :start]` -> `[:flowstone, :ai, :embed, :start]`
+    * `[:portfolio_index, :embedder, :embed, :stop]` -> `[:flowstone, :ai, :embed, :stop]`
+    * `[:portfolio_index, :embedder, :embed, :exception]` -> `[:flowstone, :ai, :embed, :exception]`
+    * `[:portfolio_index, :agent_session, :execute, :start]` -> `[:flowstone, :ai, :agent, :start]`
+    * `[:portfolio_index, :agent_session, :execute, :stop]` -> `[:flowstone, :ai, :agent, :stop]`
 
   ## Measurements
 
-  All measurements from the original altar_ai events are preserved:
-
-    * `:start` events: `%{system_time: integer()}`
-    * `:stop` events: `%{duration: integer()}`
-    * `:exception` events: `%{duration: integer()}`
+  All measurements from the original portfolio_index events are preserved.
 
   ## Metadata
 
-  All metadata from the original altar_ai events are preserved, including:
-
-    * `:adapter` - The adapter being used
-    * `:prompt` or `:text` - The input being processed
-    * `:kind`, `:reason`, `:stacktrace` - For exception events
+  All metadata from the original portfolio_index events are preserved.
   """
 
-  alias Altar.AI.Integrations.FlowStone.Telemetry, as: IntegrationTelemetry
+  @handler_id "flowstone-ai-portfolio-telemetry-bridge"
 
-  @deprecated "Use Altar.AI.Integrations.FlowStone.Telemetry.attach/0 instead"
+  @source_events [
+    [:portfolio_index, :llm, :complete, :start],
+    [:portfolio_index, :llm, :complete, :stop],
+    [:portfolio_index, :llm, :complete, :exception],
+    [:portfolio_index, :embedder, :embed, :start],
+    [:portfolio_index, :embedder, :embed, :stop],
+    [:portfolio_index, :embedder, :embed, :exception],
+    [:portfolio_index, :agent_session, :execute, :start],
+    [:portfolio_index, :agent_session, :execute, :stop]
+  ]
+
+  @event_mapping %{
+    [:portfolio_index, :llm, :complete, :start] => [:flowstone, :ai, :generate, :start],
+    [:portfolio_index, :llm, :complete, :stop] => [:flowstone, :ai, :generate, :stop],
+    [:portfolio_index, :llm, :complete, :exception] => [:flowstone, :ai, :generate, :exception],
+    [:portfolio_index, :embedder, :embed, :start] => [:flowstone, :ai, :embed, :start],
+    [:portfolio_index, :embedder, :embed, :stop] => [:flowstone, :ai, :embed, :stop],
+    [:portfolio_index, :embedder, :embed, :exception] => [:flowstone, :ai, :embed, :exception],
+    [:portfolio_index, :agent_session, :execute, :start] => [:flowstone, :ai, :agent, :start],
+    [:portfolio_index, :agent_session, :execute, :stop] => [:flowstone, :ai, :agent, :stop]
+  }
+
   @doc """
-  Attach telemetry handlers to bridge altar_ai events to FlowStone namespace.
-
-  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.Telemetry.attach/0` instead.
+  Attach telemetry handlers to bridge portfolio_index events to FlowStone namespace.
   """
-  defdelegate attach(), to: IntegrationTelemetry
+  @spec attach() :: :ok | {:error, term()}
+  def attach do
+    :telemetry.attach_many(
+      @handler_id,
+      @source_events,
+      &handle_event/4,
+      %{mapping: @event_mapping}
+    )
 
-  @doc false
-  @spec legacy_attach() :: :ok | {:error, term()}
-  def legacy_attach, do: attach()
+    :ok
+  rescue
+    _ -> :ok
+  end
 
-  @deprecated "Use Altar.AI.Integrations.FlowStone.Telemetry.detach/0 instead"
   @doc """
   Detach the telemetry handlers.
-
-  **Deprecated**: Use `Altar.AI.Integrations.FlowStone.Telemetry.detach/0` instead.
   """
-  defdelegate detach(), to: IntegrationTelemetry
+  @spec detach() :: :ok | {:error, :not_found}
+  def detach do
+    case :telemetry.detach(@handler_id) do
+      :ok -> :ok
+      {:error, :not_found} -> {:error, :not_found}
+    end
+  end
 
   @doc false
-  @spec legacy_detach() :: :ok | {:error, term()}
-  def legacy_detach, do: detach()
+  def handle_event(event, measurements, metadata, %{mapping: mapping}) do
+    case Map.get(mapping, event) do
+      nil -> :ok
+      target_event -> :telemetry.execute(target_event, measurements, metadata)
+    end
+  end
 end
